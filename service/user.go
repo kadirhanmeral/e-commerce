@@ -41,6 +41,10 @@ func (s *userService) Login(email, password string) (*model.User, error) {
 		return nil, errors.New("invalid credentials")
 	}
 
+	if user == nil {
+		return nil, errors.New("invalid credentials")
+	}
+
 	if user.Password != password {
 		return nil, errors.New("invalid credentials")
 	}
