@@ -10,60 +10,35 @@ import (
 )
 
 func main() {
-	// Database connection
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASS")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
-
-	if dbUser == "" {
-		dbUser = "root"
-	}
-	if dbPass == "" {
-		dbPass = "password"
-	}
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
-	if dbPort == "" {
-		dbPort = "3306"
-	}
-	if dbName == "" {
-		dbName = "ecommerce"
-	}
+	dbUser := getEnv("DB_USER", "root")
+	dbPass := getEnv("DB_PASS", "password")
+	dbHost := getEnv("DB_HOST", "localhost")
+	dbPort := getEnv("DB_PORT", "3306")
+	dbName := getEnv("DB_NAME", "ecommerce")
 
 	db, err := repository.NewMySQL(dbUser, dbPass, dbHost, dbPort, dbName)
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		// Continue for now to allow build verification, but in real app we might exit
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
 	cartRepo := repository.NewCartRepository(db)
 
-	// Services
 	userService := service.NewUserService(userRepo)
 	productService := service.NewProductService(productRepo)
 	cartService := service.NewCartService(cartRepo, productRepo)
 
-	// Controllers
 	userController := controller.NewUserController(userService)
 	productController := controller.NewProductController(productService)
 	cartController := controller.NewCartController(cartService)
 
-	// Router
 	mux := http.NewServeMux()
-
-	// User Routes
 	mux.HandleFunc("/register", userController.Register)
 	mux.HandleFunc("/login", userController.Login)
 	mux.HandleFunc("/profile", userController.GetProfile)
 	mux.HandleFunc("/profile/update", userController.UpdateProfile)
 
-	// Product Routes
 	mux.HandleFunc("/products", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -87,7 +62,6 @@ func main() {
 		}
 	})
 
-	// Cart Routes
 	mux.HandleFunc("/cart", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -105,4 +79,11 @@ func main() {
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return defaultValue
 }
